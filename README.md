@@ -9,10 +9,13 @@ Create a crontabs to create and clear backups:
 Add crontabs and don't forget to change dbname, password and dropbox folder:
 
 ```
-29 20 * * * pg_dump dbname --use-set-session-authorization | bzip2 | openssl  enc -aes-256-cbc -k secretPassword > /var/lib/postgresql/backups/backup-$(date +\%Y-\%m-\%d).sql.bz2
+29 20 * * * pg_dump dbname --use-set-session-authorization | bzip2 | openssl  enc -aes-256-cbc -k secretPassword > /var/lib/postgresql/backups/backup-$(date +\%Y-xx-\%d).sql.bz2
 46 * * * * find /var/lib/postgresql/backups -mtime +7 -exec rm {} \;
 44 22 * * * sh /var/lib/postgresql/uploader.sh dropboxfolder
 ```
+
+We user `xx` instead on the month because we plan to store backups for 1 month only, so the file will be replaced
+after 30 days.
 
 Clone this tool on your local machine:
 
