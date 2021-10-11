@@ -28,11 +28,11 @@ Now you can upload the binary and `uploader.sh` to your host:
 
 Change the owner of these files to postgres:
 
-`
+```
 ssh root@host
 cd /var/lib/postgresql
 sudo chown postgres:postgres uploader.sh dbxcli
-`
+```
 
 Run uploader.sh from the postgres user for the first time to get auth key from Dropbox app:
 
