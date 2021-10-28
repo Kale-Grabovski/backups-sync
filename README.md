@@ -27,14 +27,15 @@ https://www.dropbox.com/developers/app .
 Then build to tool by running `go build`.
 Now you can upload the binary and `uploader.sh` to your host:
 
-`scp uploder.sh dbxcli/dbxcli root@host:/var/lib/postgresql/`
+`scp uploader.sh dbxcli/dbxcli root@host:/tmp`
 
 Change the owner of these files to postgres:
 
 ```
 ssh root@host
 cd /var/lib/postgresql
-sudo chown postgres:postgres uploader.sh dbxcli
+sudo chown postgres:postgres /tmp/uploader.sh /tmp/dbxcli
+mv /tmp/uploader.sh . && mv /tmp/dbxcli .
 ```
 
 Run uploader.sh from the postgres user for the first time to get auth key from Dropbox app:
