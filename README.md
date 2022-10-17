@@ -1,5 +1,7 @@
 ## Backup postgres dumps to dropbox
 
+`sudo apt install bzip2`
+
 Create a crontabs to create and clear backups:
 
 `su postgres && cd ~ && mkdir -p backups`
