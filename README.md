@@ -8,7 +8,7 @@ Create a crontabs to create and clear backups:
 
 `crontab -e`
 
-Add crontabs and don't forget to change dbname, password and dropbox folder:
+Add crontabs and don't forget to change dbname, password and dropboxfolder:
 
 ```
 29 20 * * * pg_dump dbname --use-set-session-authorization | bzip2 | openssl  enc -aes-256-cbc -k secretPassword > /var/lib/postgresql/backups/backup-$(date +\%Y-xx-\%d).sql.bz2
@@ -23,8 +23,8 @@ Clone this tool on your local machine:
 
 https://github.com/dropbox/dbxcli
 
-Change appKey and appSecret under `cmd/root.go`. You can find the keys at you app
-https://www.dropbox.com/developers/app .
+Change appKey and appSecret under `cmd/root.go`. You can find the keys at your app
+https://www.dropbox.com/developers/apps/create .
 
 Then build to tool by running `go build`.
 Now you can upload the binary and `uploader.sh` to your host:
@@ -46,3 +46,7 @@ Run uploader.sh from the postgres user for the first time to get auth key from D
 
 It asks for the token which you could find at 'App panel', just click 'Generate'.
 Important! Set expiration for the token as 'No expiration'.
+
+If you need to reinstall access token for some reason you should remove this shit before:
+
+`rm ~/.config/dbxcli/auth.json`
