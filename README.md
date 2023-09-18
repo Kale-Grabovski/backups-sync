@@ -41,6 +41,7 @@ Change the owner of these files to postgres:
 ssh root@host
 cd /var/lib/postgresql
 sudo chown postgres:postgres /tmp/uploader.sh /tmp/dbxcli
+sudo su postgres
 mv /tmp/uploader.sh . && mv /tmp/dbxcli .
 ```
 
