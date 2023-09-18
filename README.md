@@ -27,8 +27,10 @@ Clone this tool on your local machine:
 
 https://github.com/dropbox/dbxcli
 
-Change appKey and appSecret under `cmd/root.go`. You can find the keys at your app
+Change `appKey` and `appSecret` under `cmd/root.go`. You can find the keys at your app
 https://www.dropbox.com/developers/apps/create .
+
+You need `appKey` to replace the key will be exposed at the url after running `uploader.sh` later.
 
 Then build to tool by running `go build`.
 Now you can upload the binary and `uploader.sh` to your host:
@@ -48,6 +50,8 @@ mv /tmp/uploader.sh . && mv /tmp/dbxcli .
 Run uploader.sh from the postgres user for the first time to get auth key from Dropbox app:
 
 `sh /var/lib/postgresql/uploader.sh dropboxfolder`
+
+Replace the client_id at the url to `appKey`.
 
 It asks for the token which you could find at 'App panel', just click 'Generate'.
 Important! Set expiration for the token as 'No expiration'.
