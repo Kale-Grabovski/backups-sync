@@ -30,7 +30,7 @@ https://github.com/dropbox/dbxcli
 Change appKey and appSecret under `cmd/root.go`. You can find the keys at your app
 https://www.dropbox.com/developers/apps/create .
 
-Then build to tool by running `go build`.
+Then build to tool by running `CGO_ENABLED=0 go build`.
 Now you can upload the binary and `uploader.sh` to your host:
 
 `scp uploader.sh dbxcli/dbxcli root@host:/tmp`
