@@ -27,8 +27,10 @@ Clone this tool on your local machine:
 
 https://github.com/dropbox/dbxcli
 
-Change appKey and appSecret under `cmd/root.go`. You can find the keys at your app
+Create a `full-access` app and get appKey and appSecret:
 https://www.dropbox.com/developers/apps/create .
+
+Change appKey and appSecret under `cmd/root.go`.
 
 Then build to tool by running `CGO_ENABLED=0 go build`.
 Now you can upload the binary and `uploader.sh` to your host:
