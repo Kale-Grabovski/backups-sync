@@ -1,0 +1,6 @@
+backblaze:
+  id: keyId
+  key: app_key
+  bucket: bucketName
+  path: /path/to/backups/*.gz
+  retention_days: 14
