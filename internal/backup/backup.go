@@ -3,6 +3,7 @@ package backup
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -13,15 +14,17 @@ import (
 	"go.uber.org/zap"
 )
 
+const cronDumpPath = "/tmp/.crontab_backup"
+
 type Archiver struct {
-	logger *zap.Logger
-	cfg    config.Backups
+	lg  *zap.Logger
+	cfg config.Backups
 }
 
 func NewArchiver(logger *zap.Logger, cfg config.Backups) *Archiver {
 	return &Archiver{
-		logger: logger,
-		cfg:    cfg,
+		lg:  logger,
+		cfg: cfg,
 	}
 }
 
@@ -34,10 +37,12 @@ func (a *Archiver) CreateArchive() (string, error) {
 	archiveName := fmt.Sprintf(a.cfg.Prefix+"%s.7z", timestamp)
 	outPath := filepath.Join(a.cfg.Output, archiveName)
 
-	a.logger.Info("starting gazen archive", zap.String("archive", outPath))
+	a.lg.Info("starting gazen archive", zap.String("archive", outPath))
 
 	args := []string{"a", "-spf2", "-p" + a.cfg.Pwd, "-mhe=on", "-mx=9", "-y", outPath}
 	args = append(args, a.cfg.Inputs...)
+
+	a.dumpCrontab()
 
 	binPath, err := exec.LookPath("7z")
 	if err != nil {
@@ -48,7 +53,7 @@ func (a *Archiver) CreateArchive() (string, error) {
 		}
 	}
 
-	a.logger.Info("found 7z", zap.String("path", binPath))
+	a.lg.Info("found 7z", zap.String("path", binPath))
 	cmd := exec.Command(binPath, args...)
 
 	var stdout, stderr bytes.Buffer
@@ -61,6 +66,24 @@ func (a *Archiver) CreateArchive() (string, error) {
 		return "", fmt.Errorf("7z error: %v, details: %s", err, safeErr)
 	}
 
-	a.logger.Info("archive created", zap.String("path", outPath))
+	a.lg.Info("archive created", zap.String("path", outPath))
 	return outPath, nil
+}
+
+func (a *Archiver) dumpCrontab() {
+	a.lg.Info("executing tactical gazen crontab dump")
+
+	cmd := exec.Command("crontab", "-l")
+	out, err := cmd.Output()
+	if err != nil {
+		a.lg.Warn("no crontab found or command failed, generating dummy file for 7z", zap.Error(err))
+		out = []byte("# No crontab found for this user\n")
+	}
+
+	if err := os.WriteFile(cronDumpPath, out, 0644); err != nil {
+		a.lg.Error("failed to write crontab dump", zap.Error(err))
+		return
+	}
+
+	a.lg.Info("crontab successfully dumped (or stubbed) to", zap.String("path", cronDumpPath))
 }
