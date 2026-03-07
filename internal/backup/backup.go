@@ -30,7 +30,7 @@ func (a *Archiver) CreateArchive() (string, error) {
 		return "", fmt.Errorf("empty inputs")
 	}
 
-	timestamp := time.Now().Format("2006-01-02_15-00")
+	timestamp := time.Now().Format("2006-01-02_15-04")
 	archiveName := fmt.Sprintf(a.cfg.Prefix+"%s.7z", timestamp)
 	outPath := filepath.Join(a.cfg.Output, archiveName)
 
