@@ -6,5 +6,6 @@ build:
 upload:
 	make build && rsync -av bsync vpn@vpnnl1:~/bsync/ && \
 	ssh vpn@vpnnl1 sudo supervisorctl restart bsync && \
+	ssh vpn@vpnnl1 sudo supervisorctl restart bbackup && \
 	rm bsync
 

@@ -4,3 +4,12 @@ backblaze:
   bucket: bucketName
   path: /path/to/backups/*.gz
   retention_days: 14
+backups:
+  pwd: pwdowjfojwo
+  output: /Users/local/backups/
+  interval: 24h
+  prefix: backup_
+  path_7z: /opt/homebrew/bin/7z
+  inputs:
+    - /etc/nginx/
+    - /home/shit/.ssh/id_rsa

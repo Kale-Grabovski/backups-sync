@@ -1,4 +1,4 @@
-package backblaze
+package sync
 
 import (
 	"os"
@@ -11,14 +11,14 @@ import (
 	"go.uber.org/zap"
 )
 
-type BackupManager struct {
+type BackBlaze struct {
 	client *backblaze.B2
 	bucket *backblaze.Bucket
 	logger *zap.Logger
 	config config.Backblaze
 }
 
-func NewBackupManager(config config.Backblaze, logger *zap.Logger) (*BackupManager, error) {
+func NewBackBlaze(config config.Backblaze, logger *zap.Logger) (*BackBlaze, error) {
 	client, err := backblaze.NewB2(backblaze.Credentials{
 		AccountID:      config.ID,
 		ApplicationKey: config.Key,
@@ -35,7 +35,7 @@ func NewBackupManager(config config.Backblaze, logger *zap.Logger) (*BackupManag
 		}
 	}
 
-	return &BackupManager{
+	return &BackBlaze{
 		client: client,
 		bucket: bucket,
 		logger: logger,
@@ -43,7 +43,7 @@ func NewBackupManager(config config.Backblaze, logger *zap.Logger) (*BackupManag
 	}, nil
 }
 
-func (m *BackupManager) Run() error {
+func (m *BackBlaze) Run() error {
 	m.logger.Info("starting backup cycle")
 
 	if err := m.uploadNewBackups(); err != nil {
@@ -60,7 +60,7 @@ func (m *BackupManager) Run() error {
 	return nil
 }
 
-func (m *BackupManager) uploadNewBackups() error {
+func (m *BackBlaze) uploadNewBackups() error {
 	existingFiles, err := m.getRemoteFiles()
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func (m *BackupManager) uploadNewBackups() error {
 	return nil
 }
 
-func (m *BackupManager) cleanupOldBackups() error {
+func (m *BackBlaze) cleanupOldBackups() error {
 	resp, err := m.bucket.ListFileNames("", 1000)
 	if err != nil {
 		return err
@@ -135,7 +135,7 @@ func (m *BackupManager) cleanupOldBackups() error {
 	return nil
 }
 
-func (m *BackupManager) getRemoteFiles() (map[string]bool, error) {
+func (m *BackBlaze) getRemoteFiles() (map[string]bool, error) {
 	resp, err := m.bucket.ListFileNames("", 1000)
 	if err != nil {
 		return nil, err
