@@ -36,7 +36,7 @@ func (a *Archiver) CreateArchive() (string, error) {
 
 	a.logger.Info("starting gazen archive", zap.String("archive", outPath))
 
-	args := []string{"a", "-p" + a.cfg.Pwd, "-mhe=on", "-mx=9", "-y", outPath}
+	args := []string{"a", "-spf2", "-p" + a.cfg.Pwd, "-mhe=on", "-mx=9", "-y", outPath}
 	args = append(args, a.cfg.Inputs...)
 
 	binPath, err := exec.LookPath("7z")
