@@ -17,9 +17,10 @@ type Backups struct {
 }
 
 type Backblaze struct {
-	ID            string `mapstructure:"id"`
-	Key           string `mapstructure:"key"`
-	Bucket        string `mapstructure:"bucket"`
-	Path          string `mapstructure:"path"`
-	RetentionDays int    `mapstructure:"retention_days"`
+	ID            string        `mapstructure:"id"`
+	Key           string        `mapstructure:"key"`
+	Bucket        string        `mapstructure:"bucket"`
+	Path          string        `mapstructure:"path"`
+	RetentionDays int           `mapstructure:"retention_days"`
+	Interval      time.Duration `mapstructure:"interval"`
 }
