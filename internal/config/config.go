@@ -8,12 +8,13 @@ type Config struct {
 }
 
 type Backups struct {
-	Inputs   []string      `mapstructure:"inputs"`
-	Path7z   string        `mapstructure:"path_7z"`
-	Pwd      string        `mapstructure:"pwd"`
-	Output   string        `mapstructure:"output"`
-	Prefix   string        `mapstructure:"prefix"`
-	Interval time.Duration `mapstructure:"interval"`
+	Inputs        []string      `mapstructure:"inputs"`
+	IgnoreChanges []string      `mapstructure:"ignore_changes"`
+	Path7z        string        `mapstructure:"path_7z"`
+	Pwd           string        `mapstructure:"pwd"`
+	Output        string        `mapstructure:"output"`
+	Prefix        string        `mapstructure:"prefix"`
+	Interval      time.Duration `mapstructure:"interval"`
 }
 
 type Backblaze struct {

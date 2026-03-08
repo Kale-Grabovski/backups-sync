@@ -127,6 +127,11 @@ func (a *Archiver) generateOutputPath(shortHash string) string {
 }
 
 func (a *Archiver) calcInputsState() string {
+	ignoreMap := make(map[string]bool)
+	for _, path := range a.cfg.IgnoreChanges {
+		ignoreMap[filepath.Clean(path)] = true
+	}
+
 	h := sha256.New()
 	for _, path := range a.cfg.Inputs {
 		filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
@@ -134,13 +139,9 @@ func (a *Archiver) calcInputsState() string {
 				return nil
 			}
 
-			if p == cronDumpPath {
-				content, readErr := os.ReadFile(p)
-				if readErr == nil {
-					fmt.Fprintf(h, "%s|content:%s\n", p, string(content))
-					return nil
-				}
-				a.lg.Warn("could not read crontab dump for hashing, falling back to mtime", zap.Error(readErr))
+			if ignoreMap[filepath.Clean(p)] {
+				fmt.Fprintf(h, "%s|ignored_volatile\n", p)
+				return nil
 			}
 
 			fmt.Fprintf(h, "%s|%d|%d\n", p, info.Size(), info.ModTime().UnixNano())

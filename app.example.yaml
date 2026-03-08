@@ -14,3 +14,7 @@ backups:
   inputs:
     - /etc/nginx/
     - /home/shit/.ssh/id_rsa
+    - /home/shit/.zsh_history
+  ignore_changes: # inputs to be ignored when calculating hash using modified time
+    - /home/shit/.zsh_history
+    - /tmp/.crontab_backup
