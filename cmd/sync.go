@@ -32,7 +32,7 @@ var syncCmd = &cobra.Command{
 		}
 		defer lg.Sync()
 
-		lg.Info("sync started", zap.Any("config", cfg))
+		lg.Info("sync started")
 
 		blazeSync, err := sync.NewBackBlaze(cfg.BackBlaze, lg)
 		if err != nil {
