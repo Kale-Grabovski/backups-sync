@@ -5,6 +5,7 @@ backblaze:
   path: /path/to/backups/*.gz
   retention_days: 14
   interval: 1h
+
 backups:
   pwd: pwdowjfojwo
   output: /Users/local/backups/
@@ -18,3 +19,13 @@ backups:
   ignore_changes: # inputs to be ignored when calculating hash using modified time
     - /home/shit/.zsh_history
     - /tmp/.crontab_backup
+
+db: # PostgreSQL backup via pg_dump from docker container
+  container_name: remnawave-db # Docker container name
+  user: zalupa
+  database: vyalik_db
+  path: /home/shit/backups/ # Where to save backups
+  prefix: db_ # Filename prefix (result: db_2024-01-15_14-30.dump)
+  docker_path: /usr/local/bin/docker # Path to Docker executable
+  interval: 12h # Backup interval (0 for single run)
+  immediate: true # Backup immediately after container start

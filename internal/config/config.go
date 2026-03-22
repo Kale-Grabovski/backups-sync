@@ -5,6 +5,7 @@ import "time"
 type Config struct {
 	BackBlaze Backblaze `mapstructure:"backblaze"`
 	Backups   Backups   `mapstructure:"backups"`
+	DB        DB        `mapstructure:"db"`
 }
 
 type Backups struct {
@@ -24,4 +25,15 @@ type Backblaze struct {
 	Path          string        `mapstructure:"path"`
 	RetentionDays int           `mapstructure:"retention_days"`
 	Interval      time.Duration `mapstructure:"interval"`
+}
+
+type DB struct {
+	ContainerName string        `mapstructure:"container_name"`
+	User          string        `mapstructure:"user"`
+	Database      string        `mapstructure:"database"`
+	Path          string        `mapstructure:"path"`
+	DockerPath    string        `mapstructure:"docker_path"`
+	Prefix        string        `mapstructure:"prefix"`
+	Interval      time.Duration `mapstructure:"interval"`
+	Immediate     bool          `mapstructure:"immediate"`
 }
