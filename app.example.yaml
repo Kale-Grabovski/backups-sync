@@ -28,4 +28,5 @@ db: # PostgreSQL backup via pg_dump from docker container
   prefix: db_ # Filename prefix (result: db_2024-01-15_14-30.dump)
   docker_path: /usr/local/bin/docker # Path to Docker executable
   interval: 12h # Backup interval (0 for single run)
+  sudo: true # Run docker with sudo privileges
   immediate: true # Backup immediately after container start

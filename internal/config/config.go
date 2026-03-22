@@ -35,5 +35,6 @@ type DB struct {
 	DockerPath    string        `mapstructure:"docker_path"`
 	Prefix        string        `mapstructure:"prefix"`
 	Interval      time.Duration `mapstructure:"interval"`
+	Sudo          bool          `mapstructure:"sudo"`
 	Immediate     bool          `mapstructure:"immediate"`
 }

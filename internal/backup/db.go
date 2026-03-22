@@ -13,11 +13,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// DBackuper represents a superior German engineering tool for database backups
 type DBackuper struct {
 	lg  *zap.Logger
 	cfg config.DB
 }
 
+// NewDBackuper initializes the backup machinery
 func NewDBackuper(logger *zap.Logger, cfg config.DB) *DBackuper {
 	return &DBackuper{
 		lg:  logger,
@@ -25,30 +27,42 @@ func NewDBackuper(logger *zap.Logger, cfg config.DB) *DBackuper {
 	}
 }
 
-// CreateDump creates pg backup from docker container and saves it to a specified directory.
+// CreateDump executes the backup process. Failure is not an option.
 func (db *DBackuper) CreateDump() (string, error) {
 	if db.cfg.Database == "" || db.cfg.User == "" || db.cfg.ContainerName == "" {
 		return "", fmt.Errorf("database config incomplete: database=%s, user=%s, container=%s",
 			db.cfg.Database, db.cfg.User, db.cfg.ContainerName)
 	}
 
-	// Generate output path FIRST, before any temp nonsense
 	outPath := db.generateOutputPath()
 	if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
 		return "", fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Build the pg_dump command - docker exec handles the piping correctly
-	pgDumpCmd := fmt.Sprintf("pg_dump -U %s -d %s -F c", db.cfg.User, db.cfg.Database)
-
-	// Execute docker exec and read output directly
-	docker := "docker"
+	dockerCmd := "docker"
 	if db.cfg.DockerPath != "" {
-		docker = db.cfg.DockerPath
+		dockerCmd = db.cfg.DockerPath
 	}
-	cmd := exec.Command(docker, "exec", db.cfg.ContainerName, "sh", "-c", pgDumpCmd)
 
-	// Write directly to output file, no temp nonsense
+	// pass arguments directly to pg_dump to avoid shell escaping nightmare
+	execArgs := []string{
+		"exec",
+		"-i",
+		db.cfg.ContainerName,
+		"pg_dump",
+		"-U", db.cfg.User,
+		"-d", db.cfg.Database,
+		"-F", "c",
+	}
+
+	var cmd *exec.Cmd
+	if db.cfg.Sudo {
+		sudoArgs := append([]string{dockerCmd}, execArgs...)
+		cmd = exec.Command("sudo", sudoArgs...)
+	} else {
+		cmd = exec.Command(dockerCmd, execArgs...)
+	}
+
 	outFile, err := os.Create(outPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create output file: %w", err)
@@ -59,9 +73,12 @@ func (db *DBackuper) CreateDump() (string, error) {
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
+	db.lg.Debug("executing backup command", zap.String("command", cmd.String()))
+
 	if err := cmd.Run(); err != nil {
-		os.Remove(outPath) // Clean up failed dump
-		return "", fmt.Errorf("docker exec pg_dump failed: %v, details: %s", err, stderr.String())
+		outFile.Close()    // Close before removing
+		os.Remove(outPath) // Burn the evidence of failure
+		return "", fmt.Errorf("pg_dump execution failed: %v, stderr: %s", err, stderr.String())
 	}
 
 	db.lg.Info("database dump created successfully", zap.String("path", outPath))
