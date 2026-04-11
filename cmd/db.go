@@ -35,7 +35,8 @@ var dbCmd = &cobra.Command{
 		lg.Info("database backup worker started",
 			zap.String("container", cfg.DB.ContainerName),
 			zap.String("database", cfg.DB.Database),
-			zap.Duration("interval", cfg.DB.Interval))
+			zap.Duration("interval", cfg.DB.Interval),
+			zap.Int("retention_days", cfg.DB.RetentionDays))
 
 		backuper := backup.NewDBackuper(lg, cfg.DB)
 
@@ -46,6 +47,10 @@ var dbCmd = &cobra.Command{
 				return
 			}
 			lg.Info("database dump done", zap.String("file", outPath))
+
+			if err := backuper.CleanupOldBackups(); err != nil {
+				lg.Error("error cleaning up old backups", zap.Error(err))
+			}
 		}
 
 		if cfg.DB.Immediate {

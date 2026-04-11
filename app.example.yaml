@@ -30,3 +30,4 @@ db: # PostgreSQL backup via pg_dump from docker container
   interval: 12h # Backup interval (0 for single run)
   sudo: true # Run docker with sudo privileges
   immediate: true # Backup immediately after container start
+  retention_days: 14 # Delete backups older than N days (0 to disable)

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"backupsync/internal/config"
@@ -89,4 +90,56 @@ func (db *DBackuper) generateOutputPath() string {
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
 	dumpName := fmt.Sprintf("%s%s.dump", db.cfg.Prefix, timestamp)
 	return filepath.Join(db.cfg.Path, dumpName)
+}
+
+// CleanupOldBackups removes backups older than RetentionDays
+func (db *DBackuper) CleanupOldBackups() error {
+	if db.cfg.RetentionDays <= 0 {
+		return nil
+	}
+
+	cutoffTime := time.Now().AddDate(0, 0, -db.cfg.RetentionDays)
+	entries, err := os.ReadDir(db.cfg.Path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to read backup directory: %w", err)
+	}
+
+	deletedCount := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		if db.cfg.Prefix != "" && !strings.HasPrefix(name, db.cfg.Prefix) {
+			continue
+		}
+		if !strings.HasSuffix(name, ".dump") {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		if info.ModTime().Before(cutoffTime) {
+			path := filepath.Join(db.cfg.Path, name)
+			if err := os.Remove(path); err != nil {
+				db.lg.Warn("failed to delete old backup", zap.String("file", name), zap.Error(err))
+			} else {
+				deletedCount++
+				db.lg.Info("deleted old backup", zap.String("file", name), zap.Time("modified", info.ModTime()))
+			}
+		}
+	}
+
+	if deletedCount > 0 {
+		db.lg.Info("cleanup completed", zap.Int("deleted_count", deletedCount))
+	}
+
+	return nil
 }
