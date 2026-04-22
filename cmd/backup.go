@@ -40,8 +40,10 @@ var backupCmd = &cobra.Command{
 			}
 			lg.Info("backup done", zap.String("file", outPath))
 
-			if err := archiver.CleanupOldArchives(); err != nil {
-				lg.Error("error cleaning up old archives", zap.Error(err))
+			if cfg.Backups.RetentionDays > 0 {
+				if err := archiver.CleanupOldArchives(); err != nil {
+					lg.Error("error cleaning up old archives", zap.Error(err))
+				}
 			}
 		}
 

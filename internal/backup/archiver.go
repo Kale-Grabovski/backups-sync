@@ -170,10 +170,6 @@ func (a *Archiver) dumpCrontab() {
 }
 
 func (a *Archiver) CleanupOldArchives() error {
-	if a.cfg.RetentionDays <= 0 {
-		return nil
-	}
-
 	pattern := filepath.Join(a.cfg.Output, a.cfg.Prefix+"*")
 	files, err := filepath.Glob(pattern)
 	if err != nil {
