@@ -168,3 +168,46 @@ func (a *Archiver) dumpCrontab() {
 
 	a.lg.Info("crontab successfully dumped (or stubbed) to", zap.String("path", cronDumpPath))
 }
+
+func (a *Archiver) CleanupOldArchives() error {
+	if a.cfg.RetentionDays <= 0 {
+		return nil
+	}
+
+	pattern := filepath.Join(a.cfg.Output, a.cfg.Prefix+"*")
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return err
+	}
+
+	if len(files) == 0 {
+		return nil
+	}
+
+	cutoffTime := time.Now().AddDate(0, 0, -a.cfg.RetentionDays)
+	deletedCount := 0
+
+	for _, filePath := range files {
+		info, err := os.Stat(filePath)
+		if err != nil {
+			a.lg.Warn("failed to stat file", zap.String("file", filePath), zap.Error(err))
+			continue
+		}
+
+		if info.ModTime().Before(cutoffTime) {
+			a.lg.Info("deleting old archive", zap.String("file", filepath.Base(filePath)), zap.Time("modified", info.ModTime()))
+
+			if err := os.Remove(filePath); err != nil {
+				a.lg.Error("failed to delete file", zap.String("file", filePath), zap.Error(err))
+			} else {
+				deletedCount++
+			}
+		}
+	}
+
+	if deletedCount > 0 {
+		a.lg.Info("cleanup completed", zap.Int("deleted_count", deletedCount))
+	}
+
+	return nil
+}

@@ -16,6 +16,7 @@ type Backups struct {
 	Output        string        `mapstructure:"output"`
 	Prefix        string        `mapstructure:"prefix"`
 	Interval      time.Duration `mapstructure:"interval"`
+	RetentionDays int           `mapstructure:"retention_days"`
 }
 
 type Backblaze struct {

@@ -10,6 +10,7 @@ backups:
   pwd: pwdowjfojwo
   output: /Users/local/backups/
   interval: 24h
+  retention_days: 14
   prefix: backup_
   path_7z: /opt/homebrew/bin/7z
   inputs:

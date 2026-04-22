@@ -7,6 +7,9 @@ build-encrypt:
 	make deps
 	GOOS=linux GOARCH=amd64 garble -tiny -literals build -o bin/bsync .
 
+build-mac:
+	go build -trimpath -ldflags="-s -w" -o bin/bsync-mac
+
 build:
 	GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o bin/bsync
 
