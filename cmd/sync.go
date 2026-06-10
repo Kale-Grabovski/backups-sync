@@ -18,6 +18,7 @@ var syncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Sync 7z backup files to backblaze",
 	RunE: func(cmd *cobra.Command, args []string) error {
+
 		cfg, err := loadConfig(cfgFile)
 		if err != nil {
 			return fmt.Errorf("config load failed: %w", err)
@@ -32,7 +33,9 @@ var syncCmd = &cobra.Command{
 		}
 		defer lg.Sync()
 
-		lg.Info("sync started")
+		lg.Info("sleeping")
+		time.Sleep(30 * time.Second)
+		lg.Info("slept, start working")
 
 		blazeSync, err := sync.NewBackBlaze(cfg.BackBlaze, lg)
 		if err != nil {

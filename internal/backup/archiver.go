@@ -104,7 +104,7 @@ func (a *Archiver) execute7z(outPath string) error {
 		}
 	}
 
-	args := []string{"a", "-spf2", "-p" + a.cfg.Pwd, "-mhe=on", "-mx=9", "-y", outPath}
+	args := []string{"a", "-spf2", "-p" + a.cfg.Pwd, "-mhe=on", "-mx=5", "-y", outPath}
 	args = append(args, a.cfg.Inputs...)
 
 	cmd := exec.Command(binPath, args...)
