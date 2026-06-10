@@ -95,16 +95,18 @@ func (a *Archiver) isBackupNeeded(currentHash string) bool {
 func (a *Archiver) execute7z(outPath string) error {
 	a.lg.Info("arming 7z...", zap.String("archive", outPath))
 
-	binPath, err := exec.LookPath("7z")
-	if err != nil {
-		if a.cfg.Path7z != "" {
-			binPath = a.cfg.Path7z
-		} else {
+	// fallback to system PATH only if config is empty.
+	binPath := a.cfg.Path7z
+	if binPath == "" {
+		var err error
+		binPath, err = exec.LookPath("7z")
+		if err != nil {
 			return fmt.Errorf("7z binary not found: %w", err)
 		}
 	}
 
-	args := []string{"a", "-spf2", "-p" + a.cfg.Pwd, "-mhe=on", "-mx=5", "-y", outPath}
+	// -mmt=1 to prevent cpu/ram abuse and avoid OOM killer executions
+	args := []string{"a", "-spf2", "-p" + a.cfg.Pwd, "-mhe=on", "-mx=5", "-mmt=1", "-y", outPath}
 	args = append(args, a.cfg.Inputs...)
 
 	cmd := exec.Command(binPath, args...)
@@ -113,10 +115,10 @@ func (a *Archiver) execute7z(outPath string) error {
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
+		_ = os.Remove(outPath)
 		safeErr := strings.ReplaceAll(stderr.String(), a.cfg.Pwd, "***HIDDEN***")
 		return fmt.Errorf("7z error: %v, details: %s", err, safeErr)
 	}
-
 	return nil
 }
 
