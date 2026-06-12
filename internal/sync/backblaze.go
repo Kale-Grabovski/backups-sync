@@ -46,10 +46,10 @@ func NewBackBlaze(config config.Backblaze, logger *zap.Logger) (*BackBlaze, erro
 func (m *BackBlaze) Run() error {
 	m.logger.Info("starting backup cycle")
 
-	if err := m.uploadNewBackups(); err != nil {
-		m.logger.Error("failed to upload backups", zap.Error(err))
-		return err
-	}
+	//if err := m.uploadNewBackups(); err != nil {
+	//	m.logger.Error("failed to upload backups", zap.Error(err))
+	//	return err
+	//}
 
 	if err := m.cleanupOldBackups(); err != nil {
 		m.logger.Error("failed to cleanup old backups", zap.Error(err))
@@ -128,10 +128,7 @@ func (m *BackBlaze) cleanupOldBackups() error {
 		}
 	}
 
-	if deletedCount > 0 {
-		m.logger.Info("cleanup completed", zap.Int("deleted_count", deletedCount))
-	}
-
+	m.logger.Info("cleanup completed", zap.Int("deleted_count", deletedCount))
 	return nil
 }
 

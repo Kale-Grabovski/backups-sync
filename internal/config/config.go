@@ -26,6 +26,7 @@ type Backblaze struct {
 	Path          string        `mapstructure:"path"`
 	RetentionDays int           `mapstructure:"retention_days"`
 	Interval      time.Duration `mapstructure:"interval"`
+	StartSleep    time.Duration `mapstructure:"start_sleep"`
 }
 
 type DB struct {

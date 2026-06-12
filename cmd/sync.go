@@ -34,7 +34,7 @@ var syncCmd = &cobra.Command{
 		defer lg.Sync()
 
 		lg.Info("sleeping")
-		time.Sleep(30 * time.Second)
+		time.Sleep(cfg.BackBlaze.StartSleep)
 		lg.Info("slept, start working")
 
 		blazeSync, err := sync.NewBackBlaze(cfg.BackBlaze, lg)
