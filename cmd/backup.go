@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -33,6 +34,22 @@ var backupCmd = &cobra.Command{
 		archiver := backup.NewArchiver(lg, cfg.Backups)
 
 		doBackup := func() {
+			if cfg.Backups.Before != "" {
+				cmd := exec.Command("bash", "-c", cfg.Backups.Before)
+				if out, err := cmd.CombinedOutput(); err != nil {
+					lg.Error("BEFORE script failed", zap.String("output", string(out)), zap.Error(err))
+				}
+			}
+
+			if cfg.Backups.After != "" {
+				defer func() {
+					cmd := exec.Command("bash", "-c", cfg.Backups.After)
+					if out, err := cmd.CombinedOutput(); err != nil {
+						lg.Error("AFTER script failed", zap.String("output", string(out)), zap.Error(err))
+					}
+				}()
+			}
+
 			outPath, err := archiver.CreateArchive()
 			if err != nil {
 				lg.Error("error creating backup", zap.Error(err))

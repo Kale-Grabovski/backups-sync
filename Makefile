@@ -22,5 +22,15 @@ upload:
 	rsync -av bin/bsync vpn@vpnnlg:~/bsync/ && \
 	ssh vpn@vpnnlg sudo supervisorctl restart all
 
+upload-ing:
+	make build && \
+	rsync -av bin/bsync vpn@vpning:~/bsync/ && \
+	ssh vpn@vpning sudo supervisorctl restart all
+
+upload-nlg:
+	make build && \
+	rsync -av bin/bsync vpn@vpnnlg:~/bsync/ && \
+	ssh vpn@vpnnlg sudo supervisorctl restart all
+
 mac:
 	go build -trimpath -ldflags="-s -w" -o bin/bsync-mac

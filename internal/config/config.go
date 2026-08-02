@@ -11,6 +11,8 @@ type Config struct {
 type Backups struct {
 	Inputs        []string      `mapstructure:"inputs"`
 	IgnoreChanges []string      `mapstructure:"ignore_changes"`
+	Before        string        `mapstructure:"before_script"`
+	After         string        `mapstructure:"after_script"`
 	Path7z        string        `mapstructure:"path_7z"`
 	Pwd           string        `mapstructure:"pwd"`
 	Output        string        `mapstructure:"output"`
