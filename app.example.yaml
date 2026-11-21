@@ -2,8 +2,9 @@ backblaze:
   id: keyId
   key: app_key
   bucket: bucketName
-  path: /path/to/backups/*.gz
-  retention_days: 14
+  path: /path/to/backups/*.7z # what bsync uploads
+  retention_days: 14          # Delete files older than N days in the bucket
+  start_sleep: 1m             # Wait before the first upload after start
   interval: 1h
 
 backups:
@@ -12,7 +13,11 @@ backups:
   interval: 24h
   retention_days: 14
   prefix: backup_
-  path_7z: /opt/homebrew/bin/7z
+  path_7z: /opt/homebrew/bin/7z # If empty, 7z is looked up in PATH
+  # Shell commands around every backup, e.g. to get a consistent copy of a
+  # live service. Leave out if not needed.
+  before_script: docker stop grafana
+  after_script: docker start grafana
   inputs:
     - /etc/nginx/
     - /home/shit/.ssh/id_rsa
