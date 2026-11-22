@@ -80,7 +80,10 @@ copy the files you need by hand.`,
 				fmt.Println("no archives with this prefix in the bucket")
 			}
 			for _, a := range archives {
-				fmt.Printf("%s  %10d  %s\n", a.Uploaded.Format("2006-01-02 15:04"), a.Size, a.Name)
+				// made (from the name) first, uploaded second: they differ for an
+				// archive the sync re-uploaded after the bucket retention
+				fmt.Printf("%s  %s  %10d  %s\n", a.When().Format("2006-01-02 15:04"),
+					a.Uploaded.Format("2006-01-02 15:04"), a.Size, a.Name)
 			}
 			return nil
 		}

@@ -119,3 +119,34 @@ func TestExtractRoundTrip(t *testing.T) {
 		t.Fatal("password leaked into the error")
 	}
 }
+
+func TestLatestIgnoresReuploadedOldArchive(t *testing.T) {
+	// the real list of a gate: an archive of 11-11 re-uploaded on 11-21 after
+	// the bucket retention dropped it, one hour after the genuine newest one
+	mk := func(name string, up time.Time) Archive {
+		return Archive{Name: name, Uploaded: up, Created: createdFromName(name)}
+	}
+	day := func(d, h int) time.Time { return time.Date(2026, 11, d, h, 24, 0, 0, time.UTC) }
+	a := []Archive{
+		mk("gazen_2026-11-11_05-24_c08904a1.7z", day(21, 6)), // re-uploaded old
+		mk("gazen_2026-11-21_05-24_baf1d68e.7z", day(21, 5)), // the real newest
+		mk("gazen_2026-11-20_17-24_0534be98.7z", day(20, 17)),
+	}
+	sortNewest(a)
+	got, err := Pick(a, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Name != "gazen_2026-11-21_05-24_baf1d68e.7z" {
+		t.Errorf("latest = %s, want the 11-21 archive, not the re-uploaded 11-11 one", got.Name)
+	}
+}
+
+func TestCreatedFromName(t *testing.T) {
+	if got := createdFromName("gazen_2026-11-21_05-24_baf1d68e.7z"); got.Format("2006-01-02 15:04") != "2026-11-21 05:24" {
+		t.Errorf("parsed %v", got)
+	}
+	if got := createdFromName("gazen_garbage.7z"); !got.IsZero() {
+		t.Errorf("a name without a timestamp must give zero, got %v", got)
+	}
+}

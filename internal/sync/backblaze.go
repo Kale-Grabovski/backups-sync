@@ -16,9 +16,12 @@ type BackBlaze struct {
 	bucket *backblaze.Bucket
 	logger *zap.Logger
 	config config.Backblaze
+	// prefixes of the files of THIS host (backups.prefix, db.prefix). The bucket
+	// is shared, the cleanup deletes only files that start with one of them.
+	prefixes []string
 }
 
-func NewBackBlaze(config config.Backblaze, logger *zap.Logger) (*BackBlaze, error) {
+func NewBackBlaze(config config.Backblaze, prefixes []string, logger *zap.Logger) (*BackBlaze, error) {
 	client, err := backblaze.NewB2(backblaze.Credentials{
 		AccountID:      config.ID,
 		ApplicationKey: config.Key,
@@ -36,10 +39,11 @@ func NewBackBlaze(config config.Backblaze, logger *zap.Logger) (*BackBlaze, erro
 	}
 
 	return &BackBlaze{
-		client: client,
-		bucket: bucket,
-		logger: logger,
-		config: config,
+		client:   client,
+		bucket:   bucket,
+		logger:   logger,
+		config:   config,
+		prefixes: prefixes,
 	}, nil
 }
 
@@ -79,6 +83,19 @@ func (m *BackBlaze) uploadNewBackups() error {
 			continue
 		}
 
+		// an archive past the bucket retention stays on disk longer
+		// (backups.retention_days), and uploading it again would only make the
+		// cleanup delete it again: it went back and forth every day
+		info, err := os.Stat(filePath)
+		if err != nil {
+			m.logger.Error("failed to stat file", zap.String("file", fileName), zap.Error(err))
+			continue
+		}
+		if expired(fileName, info.ModTime(), m.config.RetentionDays, time.Now()) {
+			m.logger.Debug("skip: older than the bucket retention", zap.String("file", fileName))
+			continue
+		}
+
 		m.logger.Info("uploading new backup", zap.String("file", fileName))
 
 		file, err := os.Open(filePath)
@@ -107,24 +124,28 @@ func (m *BackBlaze) uploadNewBackups() error {
 }
 
 func (m *BackBlaze) cleanupOldBackups() error {
-	resp, err := m.bucket.ListFileNames("", 1000)
+	files, err := m.listAll()
 	if err != nil {
 		return err
 	}
 
-	cutoffTime := time.Now().AddDate(0, 0, -m.config.RetentionDays)
+	remote := make([]remoteFile, 0, len(files))
+	for _, f := range files {
+		remote = append(remote, remoteFile{
+			Name:     f.Name,
+			ID:       f.ID,
+			Uploaded: time.UnixMilli(f.UploadTimestamp),
+		})
+	}
+
 	deletedCount := 0
+	for _, file := range selectExpired(remote, m.prefixes, m.config.RetentionDays, time.Now()) {
+		m.logger.Info("deleting old backup", zap.String("file", file.Name), zap.Time("uploaded", file.Uploaded))
 
-	for _, file := range resp.Files {
-		uploadTime := time.Unix(file.UploadTimestamp/1000, 0)
-		if uploadTime.Before(cutoffTime) {
-			m.logger.Info("deleting old backup", zap.String("file", file.Name), zap.Time("uploaded", uploadTime))
-
-			if _, err = m.bucket.DeleteFileVersion(file.Name, file.ID); err != nil {
-				m.logger.Error("failed to delete file", zap.String("file", file.Name), zap.Error(err))
-			} else {
-				deletedCount++
-			}
+		if _, err = m.bucket.DeleteFileVersion(file.Name, file.ID); err != nil {
+			m.logger.Error("failed to delete file", zap.String("file", file.Name), zap.Error(err))
+		} else {
+			deletedCount++
 		}
 	}
 
@@ -133,14 +154,33 @@ func (m *BackBlaze) cleanupOldBackups() error {
 }
 
 func (m *BackBlaze) getRemoteFiles() (map[string]bool, error) {
-	resp, err := m.bucket.ListFileNames("", 1000)
+	files, err := m.listAll()
 	if err != nil {
 		return nil, err
 	}
 
-	existing := make(map[string]bool)
-	for _, file := range resp.Files {
+	existing := make(map[string]bool, len(files))
+	for _, file := range files {
 		existing[file.Name] = true
 	}
 	return existing, nil
+}
+
+// listAll walks the whole bucket page by page. One call returns at most 1000
+// names, and a longer list silently dropped the rest: uploads were repeated
+// and the cleanup never saw the old files.
+func (m *BackBlaze) listAll() ([]backblaze.FileStatus, error) {
+	var out []backblaze.FileStatus
+	start := ""
+	for {
+		resp, err := m.bucket.ListFileNames(start, 1000)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, resp.Files...)
+		if resp.NextFileName == "" {
+			return out, nil
+		}
+		start = resp.NextFileName
+	}
 }

@@ -37,7 +37,16 @@ var syncCmd = &cobra.Command{
 		time.Sleep(cfg.BackBlaze.StartSleep)
 		lg.Info("slept, start working")
 
-		blazeSync, err := sync.NewBackBlaze(cfg.BackBlaze, lg)
+		// the bucket is shared by several hosts: the cleanup deletes only what
+		// starts with the prefixes of this config
+		var prefixes []string
+		for _, p := range []string{cfg.Backups.Prefix, cfg.DB.Prefix} {
+			if p != "" {
+				prefixes = append(prefixes, p)
+			}
+		}
+
+		blazeSync, err := sync.NewBackBlaze(cfg.BackBlaze, prefixes, lg)
 		if err != nil {
 			lg.Error("cannot init backblaze manager", zap.Error(err))
 			return err

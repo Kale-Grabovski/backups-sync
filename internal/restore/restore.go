@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"backupsync/internal/archivename"
 	"backupsync/internal/config"
 
 	"github.com/kothar/go-backblaze"
@@ -28,7 +29,28 @@ type Archive struct {
 	Name     string
 	Size     int64
 	Uploaded time.Time
-	SHA1     string
+	// Created is parsed from the name (prefix + 2006-01-02_15-04). The upload
+	// time lies: the sync re-uploads a local archive that the bucket retention
+	// already deleted, so an old archive can carry a fresh upload time. Zero if
+	// the name has no timestamp.
+	Created time.Time
+	SHA1    string
+}
+
+// When is the moment the archive was made: from the name, the upload time only
+// as a fallback. Newest/latest go by this, never by the upload time.
+func (a Archive) When() time.Time {
+	if !a.Created.IsZero() {
+		return a.Created
+	}
+	return a.Uploaded
+}
+
+// createdFromName reads the timestamp the archiver puts in the name, zero if
+// there is none.
+func createdFromName(name string) time.Time {
+	t, _ := archivename.Created(name)
+	return t
 }
 
 type Restorer struct {
@@ -74,6 +96,7 @@ func (r *Restorer) List() ([]Archive, error) {
 				Name:     f.Name,
 				Size:     f.ContentLength,
 				Uploaded: time.UnixMilli(f.UploadTimestamp),
+				Created:  createdFromName(f.Name),
 				SHA1:     f.ContentSha1,
 			})
 		}
@@ -91,7 +114,7 @@ func matches(name, prefix string) bool {
 }
 
 func sortNewest(a []Archive) {
-	sort.Slice(a, func(i, j int) bool { return a[i].Uploaded.After(a[j].Uploaded) })
+	sort.SliceStable(a, func(i, j int) bool { return a[i].When().After(a[j].When()) })
 }
 
 // Pick returns the named archive, or the newest one when name is empty.
@@ -203,10 +226,13 @@ func FindDumps(dir string) ([]string, error) {
 // apply=false only runs `pg_restore --list`: proves the dump is readable and
 // touches nothing. apply=true drops and recreates the objects of the dump in
 // the target database (--clean --if-exists), so it needs an explicit --yes.
+// --single-transaction makes it all or nothing: a failure half way rolls the
+// whole restore back instead of leaving a database of half old, half new.
 func (r *Restorer) PgRestore(dump, container, user, database string, apply bool) (string, error) {
 	args := []string{"exec", "-i", container, "pg_restore"}
 	if apply {
-		args = append(args, "-U", user, "-d", database, "--clean", "--if-exists", "--no-owner", "--no-acl")
+		args = append(args, "-U", user, "-d", database, "--clean", "--if-exists", "--no-owner", "--no-acl",
+			"--single-transaction")
 	} else {
 		args = append(args, "--list")
 	}
