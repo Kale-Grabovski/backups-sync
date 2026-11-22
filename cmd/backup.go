@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -33,11 +35,34 @@ var backupCmd = &cobra.Command{
 
 		archiver := backup.NewArchiver(lg, cfg.Backups)
 
+		var dumper *backup.DBackuper
+		if cfg.Backups.DumpBefore {
+			if cfg.DB.Database == "" || cfg.DB.User == "" || cfg.DB.ContainerName == "" {
+				panic("backups.dump_before needs container_name, user and database in the db section")
+			}
+			if !pathInInputs(cfg.Backups.Inputs, cfg.DB.Path) {
+				lg.Warn("dump_before: db.path is not inside backups.inputs, the dump will NOT land in the archive",
+					zap.String("db_path", cfg.DB.Path))
+			}
+			dumper = backup.NewDBackuper(lg, cfg.DB)
+		}
+
 		doBackup := func() {
 			if cfg.Backups.Before != "" {
 				cmd := exec.Command("bash", "-c", cfg.Backups.Before)
 				if out, err := cmd.CombinedOutput(); err != nil {
 					lg.Error("BEFORE script failed", zap.String("output", string(out)), zap.Error(err))
+				}
+			}
+
+			// A fresh dump right before the archive: the db worker has its own
+			// timer, so without this the archive carries a dump up to a full
+			// interval older than itself. A failed dump does not stop the files.
+			if dumper != nil {
+				if dumpPath, err := dumper.DumpAndCleanup(); err != nil {
+					lg.Error("DUMP before archive failed, the archive carries an OLD dump", zap.Error(err))
+				} else {
+					lg.Info("fresh dump for the archive", zap.String("file", dumpPath))
 				}
 			}
 
@@ -96,6 +121,18 @@ var backupCmd = &cobra.Command{
 			}
 		}
 	},
+}
+
+// pathInInputs reports whether dir is one of the inputs or lies inside one.
+func pathInInputs(inputs []string, dir string) bool {
+	dir = filepath.Clean(dir)
+	for _, in := range inputs {
+		rel, err := filepath.Rel(filepath.Clean(in), dir)
+		if err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
 }
 
 func init() {

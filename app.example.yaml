@@ -13,6 +13,9 @@ backups:
   interval: 24h
   retention_days: 14
   prefix: backup_
+  # Dump the db section right before every archive, so the archive never
+  # carries a dump older than itself. db.path must be inside inputs.
+  dump_before: true
   path_7z: /opt/homebrew/bin/7z # If empty, 7z is looked up in PATH
   # Shell commands around every backup, e.g. to get a consistent copy of a
   # live service. Leave out if not needed.
@@ -37,3 +40,4 @@ db: # PostgreSQL backup via pg_dump from docker container
   sudo: true # Run docker with sudo privileges
   immediate: true # Backup immediately after container start
   retention_days: 14 # Delete backups older than N days (0 to disable)
+  keep_last: 1 # Keep only the N newest dumps (0 to disable); 1 = one dump per archive

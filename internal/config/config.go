@@ -19,6 +19,9 @@ type Backups struct {
 	Prefix        string        `mapstructure:"prefix"`
 	Interval      time.Duration `mapstructure:"interval"`
 	RetentionDays int           `mapstructure:"retention_days"`
+	// DumpBefore makes a fresh DB dump (the db section) right before every
+	// archive, so the archive never carries a dump older than itself.
+	DumpBefore bool `mapstructure:"dump_before"`
 }
 
 type Backblaze struct {
@@ -42,4 +45,7 @@ type DB struct {
 	RetentionDays int           `mapstructure:"retention_days"`
 	Sudo          bool          `mapstructure:"sudo"`
 	Immediate     bool          `mapstructure:"immediate"`
+	// KeepLast keeps only the N newest dumps (0 = off). Together with
+	// retention_days both rules apply.
+	KeepLast int `mapstructure:"keep_last"`
 }

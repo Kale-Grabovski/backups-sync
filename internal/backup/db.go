@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -94,10 +95,79 @@ func (db *DBackuper) generateOutputPath() string {
 
 // CleanupOldBackups removes backups older than RetentionDays
 func (db *DBackuper) CleanupOldBackups() error {
-	if db.cfg.RetentionDays <= 0 {
-		return nil
+	if db.cfg.RetentionDays > 0 {
+		if err := db.cleanByAge(); err != nil {
+			return err
+		}
+	}
+	if db.cfg.KeepLast > 0 {
+		return db.trimToKeepLast()
+	}
+	return nil
+}
+
+// DumpAndCleanup makes a dump and applies the retention. When the dump fails
+// the old dumps are left alone: a broken pg_dump must not eat the last good one.
+func (db *DBackuper) DumpAndCleanup() (string, error) {
+	outPath, err := db.CreateDump()
+	if err != nil {
+		return "", err
+	}
+	if err := db.CleanupOldBackups(); err != nil {
+		db.lg.Error("error cleaning up old backups", zap.Error(err))
+	}
+	return outPath, nil
+}
+
+// trimToKeepLast removes all dumps but the KeepLast newest ones.
+func (db *DBackuper) trimToKeepLast() error {
+	entries, err := os.ReadDir(db.cfg.Path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to read backup directory: %w", err)
 	}
 
+	type dump struct {
+		name string
+		mod  time.Time
+	}
+	var dumps []dump
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".dump") {
+			continue
+		}
+		if db.cfg.Prefix != "" && !strings.HasPrefix(name, db.cfg.Prefix) {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		dumps = append(dumps, dump{name, info.ModTime()})
+	}
+
+	// Newest first, the name breaks a tie (it carries the timestamp).
+	sort.Slice(dumps, func(i, j int) bool {
+		if !dumps[i].mod.Equal(dumps[j].mod) {
+			return dumps[i].mod.After(dumps[j].mod)
+		}
+		return dumps[i].name > dumps[j].name
+	})
+
+	for _, d := range dumps[min(db.cfg.KeepLast, len(dumps)):] {
+		if err := os.Remove(filepath.Join(db.cfg.Path, d.name)); err != nil {
+			db.lg.Warn("failed to delete old dump", zap.String("file", d.name), zap.Error(err))
+			continue
+		}
+		db.lg.Info("deleted dump over keep_last", zap.String("file", d.name))
+	}
+	return nil
+}
+
+func (db *DBackuper) cleanByAge() error {
 	cutoffTime := time.Now().AddDate(0, 0, -db.cfg.RetentionDays)
 	entries, err := os.ReadDir(db.cfg.Path)
 	if err != nil {

@@ -2,6 +2,30 @@
 
 Newest first. One section per day, plain English, what changed and why.
 
+## 2026-11-22
+
+### Fixed
+- The gate archive could carry a dump up to a full interval older than the
+  archive itself. `bdb` (dump, every 12h) and `bbackup` (archive, every 12h)
+  are separate programs with separate timers, and they only lined up while they
+  had been started together. After a restart of one of them the archive at
+  00:02 carried the dump of 12:13 the day before, so a restore would have lost
+  almost a day instead of "up to 12 hours".
+  `backups.dump_before: true` makes the archive worker take a fresh dump of the
+  `db` section right before every archive. A failed dump is logged as an error
+  and the archive of the files is still made. The old dumps are not touched
+  when the new one failed. At start it warns when `db.path` is not inside
+  `backups.inputs` (then the dump would not land in the archive at all).
+
+### Added
+- `db.keep_last: N` keeps only the N newest dumps (0 = off, works together with
+  `retention_days`). The archive size jumped between 13 and 35 MB only because
+  of this: a dump is ~8 MB, everything else in the archive is ~100 KB, so the
+  size was the number of dumps lying in `/opt/remnawave/backups` at that
+  moment (retention by days plus manual restarts). With `keep_last: 1` an
+  archive carries exactly one dump. The history stays in the bucket, every
+  archive has its own.
+
 ## 2026-11-21
 
 ### Fixed
